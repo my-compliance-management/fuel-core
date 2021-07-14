@@ -53,18 +53,32 @@ class Security
 		static::$csrf_old_token = \Input::cookie(static::$csrf_token_key, false);
 
 		// if csrf automatic checking is enabled, and it fails validation, bail out!
-		if (\Config::get('security.csrf_autoload', false))
-		{
+		if (\Config::get('security.csrf_autoload', false)) {
 			$check_token_methods = \Config::get('security.csrf_autoload_methods', array('post', 'put', 'delete'));
-			if (in_array(strtolower(\Input::method()), $check_token_methods) and ! static::check_token())
-			{
-				if (\Config::get('security.csrf_bad_request_on_fail', false))
-				{
-					throw new \HttpBadRequestException('CSRF validation failed, Possible hacking attempt detected!');
+			$method = strtolower(\Input::method());
+
+			if (in_array($method, $check_token_methods)) {
+				$skip = false;
+
+				// check the route we're on is not to be excluded.
+				$q_string = Input::Get() ?: ['none' => null];
+				$uri = array_keys($q_string)[0];
+				$exclusions = \Config::get('security.csrf_exclusion', []);
+				foreach($exclusions as $exclusion){
+					if(strpos($uri, $exclusion) !== false){
+						$skip = true;
+						break;
+					}
 				}
-				else
-				{
-					throw new \SecurityException('CSRF validation failed, Possible hacking attempt detected!');
+
+				if(!$skip && !static::check_token()) {
+					if(\Config::get('security.csrf_bad_request_on_fail', false)) {
+						$referrer = Input::referrer();
+						Response::redirect($referrer);
+						throw new \HttpBadRequestException('CSRF Token validation failed.');
+					} else {
+						throw new \SecurityException('CSRF Token validation failed.');
+					}
 				}
 			}
 		}
