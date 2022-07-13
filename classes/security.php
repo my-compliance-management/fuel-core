@@ -82,7 +82,7 @@ class Security
                     }
                 }
             }
-        }
+        
 		}
 
 		// throw an exception if the output filter setting is missing from the app config
