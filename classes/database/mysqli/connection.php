@@ -394,6 +394,7 @@ class Database_MySQLi_Connection extends \Database_Connection
 			'float unsigned'            => array('type' => 'float', 'min' => '0'),
 			'int unsigned'              => array('type' => 'int', 'min' => '0', 'max' => '4294967295'),
 			'integer unsigned'          => array('type' => 'int', 'min' => '0', 'max' => '4294967295'),
+			'json'                      => array('type' => 'json', 'min' => '0'),
 			'longblob'                  => array('type' => 'string', 'binary' => true, 'character_maximum_length' => '4294967295'),
 			'longtext'                  => array('type' => 'string', 'character_maximum_length' => '4294967295'),
 			'mediumblob'                => array('type' => 'string', 'binary' => true, 'character_maximum_length' => '16777215'),
