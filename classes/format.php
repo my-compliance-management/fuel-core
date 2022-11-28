@@ -107,6 +107,12 @@ class Format
 			return array();
 		}
 
+		// Add support for Orm model native to_array method
+		if (\Package::loaded('orm') and $data instanceof \Orm\Model) 
+		{
+			return $data->to_array();
+		}
+
 		foreach ($data as $key => $value)
 		{
 			if (is_object($value) or is_array($value))
@@ -240,7 +246,7 @@ class Format
 			return 	implode($delimiter, array_map(function($item) use($enclosure, $escape, $delimiter, $enclose_numbers) {
 				if ( ! is_numeric($item) or $enclose_numbers)
 				{
-					$item = $enclosure.str_replace($enclosure, $escape.$enclosure, $item).$enclosure;
+					$item = $enclosure.str_replace($enclosure, $escape.$enclosure, (string) $item).$enclosure;
 				}
 				return $item;
 			}, $items));

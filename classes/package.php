@@ -62,6 +62,9 @@ class Package
 			return $result;
 		}
 
+		// unify the name
+		$package = ucfirst($package);
+
 		if (static::loaded($package))
 		{
 			return false;
@@ -106,7 +109,11 @@ class Package
 	 */
 	public static function unload($package)
 	{
+		// unify the name
+		$package = ucfirst($package);
+
 		\Finder::instance()->remove_path(static::$packages[$package]);
+
 		unset(static::$packages[$package]);
 	}
 
@@ -124,6 +131,9 @@ class Package
 			return static::$packages;
 		}
 
+		// unify the name
+		$package = ucfirst($package);
+
 		return array_key_exists($package, static::$packages);
 	}
 
@@ -135,6 +145,9 @@ class Package
 	 */
 	public static function exists($package)
 	{
+		// unify the name
+		$package = ucfirst($package);
+
 		if (array_key_exists($package, static::$packages))
 		{
 			return static::$packages[$package];

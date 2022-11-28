@@ -237,6 +237,11 @@ abstract class Session_Driver
 	 */
 	public function set_flash($name, $value)
 	{
+		if (empty($name))
+		{
+			throw new \FuelException("No flash variable name given.");
+		}
+
 		if (strpos($name, '.') !== false)
 		{
 			$keys = explode('.', $name, 2);
@@ -755,6 +760,9 @@ abstract class Session_Driver
 	 */
 	protected function _unserialize($input)
 	{
+		// Prevent trigger php8' error with calling unserialize with null parameter
+		$input === null and $input = '';
+
 		$data = @unserialize($input);
 
 		if (is_array($data))
