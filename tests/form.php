@@ -22,18 +22,18 @@ class Test_Form extends TestCase
 {
 	private static $config_security;
 
-	public static function setUpBeforeClass()
+	public static function setUpBeforeClass():void
 	{
 		Config::load('security');
 		static::$config_security = Config::get('security');
 	}
 
-	public static function tearDownAfterClass()
+	public static function tearDownAfterClass():void
 	{
 		Config::set('security', static::$config_security);
 	}
 
-	protected function setUp()
+	protected function setUp():void
 	{
 		Config::load('form');
 		Config::set('form', array(
