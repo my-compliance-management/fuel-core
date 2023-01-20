@@ -27,7 +27,7 @@ class Test_Crypt extends TestCase
 
 	private static $cipherkey = "a8182a9b8f9231bd6eb092be0223f3b50e6bd26ee8d71d6ceccef8e9906cc59a";
 
-	public static function setUpBeforeClass()
+	public static function setUpBeforeClass(): void
 	{
 		// load and store the current crypt config
 		\Config::load('crypt', true);
@@ -43,7 +43,7 @@ class Test_Crypt extends TestCase
 		\Crypt::_init();
 	}
 
-	public static function tearDownAfterClass()
+	public static function tearDownAfterClass(): void
 	{
 		\Config::set('crypt', static::$config_backup);
 		\Crypt::_init();
