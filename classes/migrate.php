@@ -457,6 +457,10 @@ class Migrate
 					$direction == 'up' and $migrations[$migration] = array('path' => $file);
 				}
 			}
+			
+			if(!in_array(basename($file, '.php'), $current)){
+				$direction == 'up' and $migrations[$migration] = array('path' => $file);
+			}
 		}
 
 		// We now prepare to actually DO the migrations
