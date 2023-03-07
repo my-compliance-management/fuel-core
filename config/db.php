@@ -109,10 +109,10 @@ return array(
 
 	'redis' => array(
 		'default' => array(
-			'hostname' => '127.0.0.1',
+			'hostname' => 'redis',
 			'port'     => 6379,
 			'timeout'  => null,
-			'database' => 0,
+			'database' => 2,
 		),
 	),
 );
