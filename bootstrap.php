@@ -275,8 +275,6 @@ function setup_autoloader()
 		'Fuel\\Core\\Mongo_Db'                         => COREPATH.'classes/mongo/db.php',
 		'Fuel\\Core\\Mongo_DbException'                => COREPATH.'classes/mongo/db.php',
 
-		'Fuel\\Core\\Output'                           => COREPATH.'classes/output.php',
-
 		'Fuel\\Core\\Package'                          => COREPATH.'classes/package.php',
 		'Fuel\\Core\\PackageNotFoundException'         => COREPATH.'classes/package.php',
 
