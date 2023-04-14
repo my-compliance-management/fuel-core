@@ -300,7 +300,7 @@ class Security
 	 */
 	public static function check_token($value = null)
 	{
-		$value = $value ?: \Input::param(static::$csrf_token_key, \Input::json(static::$csrf_token_key, 'fail'));
+		$value = $value ?: \Input::param(static::$csrf_token_key, \Input::json(static::$csrf_token_key, \Input::headers('X-CSRF-TOKEN', 'fail')));
 
 		// always reset token once it's been checked and still the same, and we've configured we want to rotate
 		if (static::fetch_token() == static::$csrf_old_token and ! empty($value) and \Config::get('security.csrf_rotate', true))
