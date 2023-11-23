@@ -196,9 +196,9 @@ class Redis_Db
     {
         $args = array('PSUBSCRIBE', $pattern);
 
-        $command = sprintf('*%d%s%s%s', 2, CRLF, implode(array_map(function($arg) {
-            return sprintf('$%d%s%s', strlen($arg), CRLF, $arg);
-        }, $args), CRLF), CRLF);
+        $command = sprintf('*%d%s%s%s', 2, CRLF, implode(CRLF, array_map(function($arg) {
+		return sprintf('$%d%s%s', strlen($arg), CRLF, $arg);
+	}, $args)), CRLF);
 
         for ($written = 0; $written < strlen($command); $written += $fwrite)
         {

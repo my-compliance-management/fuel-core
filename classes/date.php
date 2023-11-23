@@ -62,6 +62,7 @@ class Date
 		'%T'  => 'G:i:s', 		// Example: 21:34:17 for 09:34:17 PM
 		'%X'  => 'G:i:s', 		// Preferred time representation based on locale, without the date, Example: 03:59:16 or 15:59:16
 		'%Z'  => 'T', 			// The time zone abbreviation. Example: EST for Eastern Time
+		'%z'  => 'O',
 		'%c'  => 'Y-m-d H:i:s', // Preferred date and time stamp based on locale
 		'%D'  => 'm/d/y',		// Example: 02/05/09 for February 5, 2009
 		'%F'  => 'Y-m-d',		// Example: 2009-02-05 for February 5, 2009
@@ -163,7 +164,7 @@ class Date
 		}
 
 		// make sure we don't go before the epoch, as that causes weird things to happen
-		$time['tm_year'] <= 0 and $time['tm_year'] = 100;
+		$time['tm_year'] < 0 and $time['tm_year'] = 100;
 
 		// convert it into a timestamp
 		$timestamp = mktime($time['tm_hour'], $time['tm_min'], $time['tm_sec'],
@@ -174,7 +175,23 @@ class Date
 			throw new \OutOfBoundsException('Input was invalid.'.(PHP_INT_SIZE == 4 ? ' A 32-bit system only supports dates between 1901 and 2038.' : ''));
 		}
 
-		return static::forge($timestamp);
+		// by default, strptime() doesn't support timezones, but we
+		// do if pne was present in the format (%z or %Z for example)
+		if (array_key_exists('tm_zone', $time))
+		{
+			// and calculate the offset correction
+			$this_tz = timezone_open(date_default_timezone_get());
+			$utc_dt = date_create("now", timezone_open("UTC"));
+			$offset = timezone_offset_get($this_tz, $utc_dt);
+
+			// correct the timestamo
+			$timestamp = $timestamp - $time['tm_zone'] + $offset;
+		}
+
+		// create the date object
+		$date = static::forge($timestamp, date_default_timezone_get());
+
+		return $date;
 	}
 
 	/**
@@ -318,9 +335,13 @@ class Date
 
 	public static function strptime($input, $format)
 	{
-		if (version_compare(PHP_VERSION, '8.1.0', '<'))
+		if (function_exists('strptime') and version_compare(PHP_VERSION, '8.1.0', '<'))
 		{
-			return strptime($input, $format);
+			// we support timezones, the original strptime() doesn't.
+			if (strpos($format, '%z') === false and strpos($format, '%Z') === false)
+			{
+				return strptime($input, $format);
+			}
 		}
 
 		// convert the format string from glibc to date format (where possible)
@@ -338,14 +359,28 @@ class Date
 		// parse succesful?
 		if (is_array($parsed) and empty($parsed['errors']))
 		{
-			return array(
-				'tm_year' => $parsed['year'] - 1900,
-				'tm_mon'  => $parsed['month'] - 1,
-				'tm_mday' => $parsed['day'],
-				'tm_hour' => $parsed['hour'] ?: 0,
-				'tm_min'  => $parsed['minute'] ?: 0,
-				'tm_sec'  => $parsed['second'] ?: 0,
+			// we need a timestamp to calculate wday and yday
+			$timestamp = mktime($parsed['hour'], $parsed['minute'], $parsed['second'],
+							$parsed['month'], $parsed['day'], $parsed['year']);
+
+			$result = array(
+				'tm_sec'   => $parsed['second'] ?: 0,
+				'tm_min'   => $parsed['minute'] ?: 0,
+				'tm_hour'  => $parsed['hour'] ?: 0,
+				'tm_mday'  => $parsed['day'],
+				'tm_mon'   => $parsed['month'] - 1,
+				'tm_year'  => $parsed['year'] - 1900,
+				'tm_wday'  => $timestamp ? date('N', $timestamp) : 0,
+				'tm_yday'  => $timestamp ? date('z', $timestamp) : 0,
+				'unparsed' => '',
 			);
+
+			if ( ! empty($parsed['is_localtime']))
+			{
+				$result['tm_zone'] = isset($parsed['zone']) ? $parsed['zone'] : 0;
+			}
+
+			return $result;
 		}
 		else
 		{
@@ -366,13 +401,20 @@ class Date
 				return false;
 			}
 
+			// we need a timestamp to calculate wday and yday
+			$timestamp = mktime($result['H'], $result['M'], $result['S'],
+							($result['m'] ? $result['m'] - 1 : 0), $result['d'], ($result['Y'] > 1900 ? $result['Y'] - 1900 : $result['Y']));
+
 			return array(
-				"tm_sec"  => isset($result['S']) ? (int) $result['S'] : 0,
-				"tm_min"  => isset($result['M']) ? (int) $result['M'] : 0,
-				"tm_hour" => isset($result['H']) ? (int) $result['H'] : 0,
-				"tm_mday" => isset($result['d']) ? (int) $result['d'] : 0,
-				"tm_mon"  => isset($result['m']) ? ($result['m'] ? $result['m'] - 1 : 0) : 0,
-				"tm_year" => isset($result['Y']) ? ($result['Y'] > 1900 ? $result['Y'] - 1900 : 0) : 0,
+				"tm_sec"   => isset($result['S']) ? (int) $result['S'] : 0,
+				"tm_min"   => isset($result['M']) ? (int) $result['M'] : 0,
+				"tm_hour"  => isset($result['H']) ? (int) $result['H'] : 0,
+				"tm_mday"  => isset($result['d']) ? (int) $result['d'] : 0,
+				"tm_mon"   => isset($result['m']) ? ($result['m'] ? $result['m'] - 1 : 0) : 0,
+				"tm_year"  => isset($result['Y']) ? ($result['Y'] > 1900 ? $result['Y'] - 1900 : $result['Y']) : 0,
+				'tm_wday'  => $timestamp ? date('N', $timestamp) : 0,
+				'tm_yday'  => $timestamp ? date('z', $timestamp) : 0,
+				'unparsed' => '',
 			);
 		}
 	}
@@ -385,9 +427,9 @@ class Date
 	 * @return	string
 	 * @thanks  https://gist.github.com/bohwaz/42fc223031e2b2dd2585aab159a20f30
  	 */
-	public static function strftime($format, $timestamp)
+	public static function strftime($format, $timestamp = null)
 	{
-		if (version_compare(PHP_VERSION, '8.1.0', '<'))
+		if (function_exists('strftime') and version_compare(PHP_VERSION, '8.1.0', '<'))
 		{
 			return strftime($format, $timestamp);
 		}
@@ -631,20 +673,17 @@ class Date
 		$timezone === true and $timezone = static::$display_timezone;
 		is_string($timezone) or $timezone = $this->timezone;
 
+		// remember the current timezone
+		$current_tz = date_default_timezone_get();
+
 		// Temporarily change timezone when different from default
-		if (\Fuel::$timezone != $timezone)
-		{
-			date_default_timezone_set($timezone);
-		}
+		date_default_timezone_set($timezone);
 
 		// Create output
 		$output = static::strftime($pattern, $this->timestamp);
 
 		// Change timezone back to default if changed previously
-		if (\Fuel::$timezone != $timezone)
-		{
-			date_default_timezone_set(\Fuel::$timezone);
-		}
+		date_default_timezone_set($current_tz);
 
 		return $output;
 	}
